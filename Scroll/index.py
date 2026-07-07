@@ -5,8 +5,8 @@ from pynput import mouse
 from datetime import datetime
 
 # Coordinates where you want to start the scrolling
-x_position = 2548
-y_position = 299
+x_position = 2647
+y_position = 576
 
 # Flag to control when to stop the auto-scroller
 running = True
@@ -32,7 +32,7 @@ print("Waiting for 10 seconds before starting...")
 time.sleep(10)
 
 # Define stop time
-stop_hour = 19
+stop_hour = 22
 stop_minute = 45
 
 # Auto-scroll until stopped manually or time limit reached
