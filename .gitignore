@@ -9,3 +9,6 @@ videos/assets
 **/.env
 **/.env.*
 !.env.example
+**/uploads
+**/output
+*.mp4

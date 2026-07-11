@@ -120,15 +120,15 @@ def generate_ass(
     default_styles = {
         "font_name": "Arial",
         "font_size": 24,
-        "primary_color": "#1E293B",      # Slate dark text for contrast
+        "primary_color": "#000000",      # Visible solid target color (black)
         "secondary_color": "#00FFFF",    # Karaoke/secondary color (cyan)
-        "outline_color": "#E2E8F0",      # Soft light outline
-        "back_color": "#FFFFFFFF",       # Solid white background box
+        "outline_color": "#FFFFFF",      # Outline (white)
+        "back_color": "#00000080",       # Back shadow (translucent black)
         "bold": 1,                       # 1 standard bold, 0 normal
         "italic": 0,                     # 1 italic, 0 normal
-        "border_style": 3,               # 3: Opaque box style
-        "outline": 1.0,                  # Outline thickness
-        "shadow": 0.0,                   # Shadow depth
+        "border_style": 1,               # 1: Outline + shadow, 3: Opaque box
+        "outline": 2.0,                  # Outline thickness
+        "shadow": 1.0,                   # Shadow depth
         "alignment": 2                   # 2 = Bottom Center
     }
     
@@ -142,6 +142,24 @@ def generate_ass(
     outline_c = convert_hex_to_ass_color(str(default_styles["outline_color"]))
     back_c = convert_hex_to_ass_color(str(default_styles["back_color"]))
     
+    # Configure dynamic margins to fit inside glassmorphic subtitle container
+    margin_l = default_styles.get("margin_l", 10)
+    margin_r = default_styles.get("margin_r", 10)
+    margin_v = default_styles.get("margin_v", 12)
+    
+    container_path = Path(__file__).parent / "subtitle_container.png"
+    if container_path.exists():
+        # Adjust margins to center inside capsule safely: 
+        # MarginL=160 to avoid left logo placeholder
+        # MarginR=160 to avoid right category pill
+        # MarginV=65 to center text vertically inside the glass box
+        if "margin_l" not in default_styles:
+            margin_l = 160
+        if "margin_r" not in default_styles:
+            margin_r = 160
+        if "margin_v" not in default_styles:
+            margin_v = 65
+    
     # Create the ASS file content
     ass_template = f"""[Script Info]
 Title: Translated Video Subtitles
@@ -153,7 +171,7 @@ PlayResY: 720
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{default_styles['font_name']},{default_styles['font_size']},{primary},{secondary},{outline_c},{back_c},{default_styles['bold']},{default_styles['italic']},0,0,100,100,0,0,{default_styles['border_style']},{default_styles['outline']},{default_styles['shadow']},{default_styles['alignment']},10,10,12,1
+Style: Default,{default_styles['font_name']},{default_styles['font_size']},{primary},{secondary},{outline_c},{back_c},{default_styles['bold']},{default_styles['italic']},0,0,100,100,0,0,{default_styles['border_style']},{default_styles['outline']},{default_styles['shadow']},{default_styles['alignment']},{margin_l},{margin_r},{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

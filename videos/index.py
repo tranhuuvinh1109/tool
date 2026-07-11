@@ -149,13 +149,14 @@ def get_ass_styles_from_env() -> Dict[str, Any]:
         "SUB_BORDER_STYLE": "border_style",
         "SUB_OUTLINE": "outline",
         "SUB_SHADOW": "shadow",
-        "SUB_ALIGNMENT": "alignment"
+        "SUB_ALIGNMENT": "alignment",
+        "SUB_MARGIN_V": "margin_v"
     }
     
     for env_var, key in mappings.items():
         val = os.getenv(env_var)
         if val is not None:
-            if key in ["font_size", "bold", "italic", "border_style", "alignment"]:
+            if key in ["font_size", "bold", "italic", "border_style", "alignment", "margin_v"]:
                 try:
                     styles[key] = int(val)
                 except ValueError:
@@ -272,7 +273,7 @@ def process_video(
 
     # ----------------- Step 5: Burn Subtitles -----------------
     with StageTimer("Burning subtitles", 66):
-        burner = SubtitleBurner(src_video, sub_path, output_video)
+        burner = SubtitleBurner(src_video, sub_path, output_video, segments=segments)
         burner.burn()
         
     checkpoint_mgr.save_checkpoint("burn", {"output_video": str(output_video.resolve())})
