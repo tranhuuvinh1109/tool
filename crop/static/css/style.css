@@ -209,8 +209,9 @@ header h1 {
   transform: scale(1.2);
 }
 
-/* Segmented controls for logo position */
-.btn-group-position .btn-check:checked + .btn-outline-position {
+/* Segmented controls for logo position and video speed */
+.btn-group-position .btn-check:checked + .btn-outline-position,
+.btn-group-speed .btn-check:checked + .btn-outline-position {
   background: linear-gradient(
     135deg,
     rgba(99, 102, 241, 0.2) 0%,

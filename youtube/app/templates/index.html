@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcript Sync | Powered by Gemini 2.5 Flash</title>
+    <meta name="description" content="Synchronize YouTube video playback with real-time transcript highlighting, seek-on-click, and AI powered summarization.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-wrapper">
+        <!-- Top Navigation / Header -->
+        <header class="app-header">
+            <div class="header-branding">
+                <div class="logo-icon">
+                    <i class="fa-brands fa-youtube"></i>
+                    <i class="fa-solid fa-bolt pulse-icon"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>YouTube Transcript Sync</h1>
+                    <span class="badge-tag">Gemini 2.5 Flash AI</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="status-pill" id="status-pill">
+                    <span class="status-dot green"></span>
+                    <span id="status-text">Ready</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-container">
+            <!-- URL Input & Demo Presets Bar -->
+            <section class="url-input-section">
+                <div class="input-card glass-panel">
+                    <div class="input-group">
+                        <i class="fa-solid fa-link input-icon"></i>
+                        <input type="url" id="youtube-url" placeholder="Paste YouTube Video URL (e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ)" autocomplete="off">
+                        <button id="btn-load" class="btn-primary">
+                            <span class="btn-text">Load Video & Transcript</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    <div class="preset-links">
+                        <span class="preset-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Try Demo Videos:</span>
+                        <button class="preset-btn" data-url="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Rick Astley - Never Gonna Give You Up</button>
+                        <button class="preset-btn" data-url="https://www.youtube.com/watch?v=kqtD5dpn9C8">Python in 100 Seconds</button>
+                        <button class="preset-btn" data-url="https://www.youtube.com/watch?v=UF8uR6Z6KLc">Steve Jobs Standford Speech</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading & Error Notifications -->
+            <div id="loading-overlay" class="loading-overlay hidden">
+                <div class="spinner-box">
+                    <div class="double-bounce1"></div>
+                    <div class="double-bounce2"></div>
+                </div>
+                <p id="loading-message">Fetching transcript and initializing player...</p>
+            </div>
+
+            <div id="error-alert" class="error-alert glass-panel hidden">
+                <i class="fa-solid fa-circle-exclamation error-icon"></i>
+                <div class="error-content">
+                    <h4 id="error-title">Error Loading Transcript</h4>
+                    <p id="error-desc">Please verify your URL and try again.</p>
+                </div>
+                <button class="btn-close-alert" id="btn-close-error"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Content Grid (Split View) -->
+            <section class="workspace-grid" id="workspace-grid">
+                <!-- Left Column: Player & AI Toolbar -->
+                <div class="player-column">
+                    <!-- YouTube Player Card -->
+                    <div class="player-card glass-panel">
+                        <div class="video-container" id="player-container">
+                            <div id="player"></div>
+                            <div id="player-placeholder" class="player-placeholder">
+                                <i class="fa-brands fa-youtube placeholder-icon"></i>
+                                <h3>Enter a YouTube URL above to load playback</h3>
+                                <p>Interactive player and auto-synced transcript will appear here</p>
+                            </div>
+                        </div>
+                        <div class="video-meta" id="video-meta">
+                            <h3 id="video-title" class="video-title">No Video Loaded</h3>
+                            <div class="meta-badges">
+                                <span class="meta-badge" id="badge-language"><i class="fa-solid fa-language"></i> Lang: --</span>
+                                <span class="meta-badge" id="badge-segments"><i class="fa-solid fa-list-ol"></i> Segments: 0</span>
+                                <span class="meta-badge" id="badge-duration"><i class="fa-regular fa-clock"></i> 00:00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gemini AI Assistant Drawer / Card -->
+                    <div class="ai-card glass-panel">
+                        <div class="ai-header">
+                            <div class="ai-title">
+                                <i class="fa-solid fa-brain ai-icon"></i>
+                                <span>Gemini 2.5 Flash AI Workspace</span>
+                            </div>
+                        </div>
+
+                        <!-- AI Tabs Navigation -->
+                        <div class="ai-tabs">
+                            <button class="ai-tab-btn active" data-tab="tab-summary">
+                                <i class="fa-solid fa-compress"></i> Summary
+                            </button>
+                            <button class="ai-tab-btn" data-tab="tab-chat">
+                                <i class="fa-solid fa-comments"></i> Ask Video
+                            </button>
+                            <button class="ai-tab-btn" data-tab="tab-explain">
+                                <i class="fa-solid fa-lightbulb"></i> Explain Segment
+                            </button>
+                            <button class="ai-tab-btn" data-tab="tab-flashcards">
+                                <i class="fa-solid fa-clone"></i> Flashcards
+                            </button>
+                        </div>
+
+                        <!-- AI Tab Panes -->
+                        <div class="ai-tab-content">
+                            <!-- Summary Tab -->
+                            <div class="tab-pane active" id="tab-summary">
+                                <div class="tab-action-bar">
+                                    <p class="tab-desc">Generate an instant structured summary of the full video.</p>
+                                    <button class="btn-ai-action" id="btn-generate-summary">
+                                        <i class="fa-solid fa-sparkles"></i> Summarize Full Video
+                                    </button>
+                                </div>
+                                <div class="ai-result-box" id="result-summary">
+                                    <p class="placeholder-text">Click "Summarize Full Video" to get AI insights.</p>
+                                </div>
+                            </div>
+
+                            <!-- Chat Tab -->
+                            <div class="tab-pane" id="tab-chat">
+                                <div class="tab-action-bar flex-col">
+                                    <p class="tab-desc">Ask questions about specific facts or concepts mentioned in the video.</p>
+                                    <div class="chat-input-group">
+                                        <input type="text" id="chat-question" placeholder="e.g. What is the main point at the 2-minute mark?">
+                                        <button class="btn-ai-action" id="btn-send-chat">
+                                            <i class="fa-solid fa-paper-plane"></i> Ask
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ai-result-box" id="result-chat">
+                                    <p class="placeholder-text">Ask any question to converse with the video content.</p>
+                                </div>
+                            </div>
+
+                            <!-- Explain Tab -->
+                            <div class="tab-pane" id="tab-explain">
+                                <div class="tab-action-bar flex-col">
+                                    <p class="tab-desc">Click the "✨ Explain" button next to any transcript segment, or type text below.</p>
+                                    <div class="chat-input-group">
+                                        <input type="text" id="explain-input" placeholder="Type or paste any segment text...">
+                                        <button class="btn-ai-action" id="btn-run-explain">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i> Explain
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ai-result-box" id="result-explain">
+                                    <p class="placeholder-text">Detailed breakdown of vocabulary and concepts will appear here.</p>
+                                </div>
+                            </div>
+
+                            <!-- Flashcards Tab -->
+                            <div class="tab-pane" id="tab-flashcards">
+                                <div class="tab-action-bar">
+                                    <p class="tab-desc">Extract key terms into interactive flashcards for study.</p>
+                                    <button class="btn-ai-action" id="btn-generate-flashcards">
+                                        <i class="fa-solid fa-layer-group"></i> Create Flashcards
+                                    </button>
+                                </div>
+                                <div class="flashcards-grid" id="result-flashcards">
+                                    <p class="placeholder-text">Generated flashcards will be displayed here.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Interactive Transcript Sync Engine -->
+                <div class="transcript-column">
+                    <div class="transcript-card glass-panel">
+                        <!-- Transcript Toolbar -->
+                        <div class="transcript-toolbar">
+                            <div class="toolbar-top">
+                                <div class="transcript-heading">
+                                    <i class="fa-solid fa-align-left heading-icon"></i>
+                                    <h2>Interactive Transcript</h2>
+                                </div>
+                                <div class="transcript-counter" id="transcript-count">0 / 0</div>
+                            </div>
+
+                            <div class="toolbar-controls">
+                                <!-- Search Input -->
+                                <div class="search-box">
+                                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                                    <input type="text" id="transcript-search" placeholder="Filter transcript lines...">
+                                    <button id="btn-clear-search" class="btn-icon hidden"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+
+                                <div class="control-row">
+                                    <!-- Auto Scroll Toggle -->
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="toggle-autoscroll" checked>
+                                        <span class="slider round"></span>
+                                        <span class="toggle-label"><i class="fa-solid fa-arrows-up-to-line"></i> Auto-Scroll</span>
+                                    </label>
+
+                                    <!-- Vietnamese Translation Toggle -->
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="toggle-vietnamese" checked>
+                                        <span class="slider round"></span>
+                                        <span class="toggle-label"><i class="fa-solid fa-language"></i> Tiếng Việt</span>
+                                    </label>
+
+                                    <!-- Controls Right -->
+
+                                    <div class="controls-right">
+                                        <!-- Font Size -->
+                                        <div class="font-size-picker">
+                                            <button class="btn-font font-sm" data-size="sm" title="Small Text">A-</button>
+                                            <button class="btn-font font-md active" data-size="md" title="Medium Text">A</button>
+                                            <button class="btn-font font-lg" data-size="lg" title="Large Text">A+</button>
+                                        </div>
+
+                                        <!-- Export Actions -->
+                                        <button class="btn-export" id="btn-export-txt" title="Export as TXT"><i class="fa-solid fa-file-lines"></i> TXT</button>
+                                        <button class="btn-export" id="btn-export-srt" title="Export as SRT"><i class="fa-solid fa-closed-captioning"></i> SRT</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transcript Segment Container -->
+                        <div class="transcript-scroll-area" id="transcript-list">
+                            <div class="empty-transcript-state">
+                                <i class="fa-regular fa-comment-dots empty-icon"></i>
+                                <h3>No Transcript Loaded</h3>
+                                <p>Enter a YouTube URL above and click "Load Video & Transcript" to start synchronization.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Built with FastAPI, Vanilla JS, YouTube IFrame Player API & Gemini 2.5 Flash AI.</p>
+        </footer>
+    </div>
+
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- Custom App Script -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -37,6 +37,23 @@ jobs_lock = threading.Lock()
 def allowed_video(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
 
+def check_audio_stream(video_path):
+    """
+    Checks if the video has an audio stream.
+    """
+    cmd = [
+        'ffprobe', '-v', 'error',
+        '-select_streams', 'a',
+        '-show_entries', 'stream=codec_type',
+        '-of', 'csv=p=0',
+        video_path
+    ]
+    try:
+        output = subprocess.check_output(cmd, universal_newlines=True).strip()
+        return len(output) > 0
+    except Exception:
+        return False
+
 def get_video_info(video_path):
     """
     Extracts video metadata (dimensions, duration, frames, FPS) using OpenCV.
@@ -74,9 +91,9 @@ def extract_first_frame_base64(video_path):
             return f"data:image/jpeg;base64,{b64_str}"
     return None
 
-def process_video_thread(job_id, input_path, crop, logo_data, logo_options, video_info, split_count):
+def process_video_thread(job_id, input_path, crop, logo_data, logo_options, video_info, split_count, video_speed=1.0):
     """
-    Runs the crop, overlay, and optional splitting FFmpeg command in a background thread, tracking progress.
+    Runs the crop, overlay, speed adjustment, and optional splitting FFmpeg command in a background thread.
     """
     try:
         # Pre-clean output.mp4 and output.zip to avoid downloading old cached files
@@ -148,15 +165,31 @@ def process_video_thread(job_id, input_path, crop, logo_data, logo_options, vide
                 overlay_x = f"W-w-{margin}"
                 overlay_y = f"H-h-{margin}"
 
-            # Advanced filter complex: Scale logo -> apply opacity -> Crop Video -> Overlay Logo
-            filter_complex = (
+            # Advanced filter complex: Scale logo -> apply opacity -> Crop & Speed shift Video -> Overlay Logo
+            setpts_str = f",setpts=PTS/{video_speed}" if video_speed != 1.0 else ""
+            filter_v = (
                 f"[1:v]scale={target_w}:{target_h},format=rgba,colorchannelmixer=aa={opacity_val}[logo];"
-                f"[0:v]crop={crop_w}:{crop_h}:{crop_x}:{crop_y}[cropped];"
+                f"[0:v]crop={crop_w}:{crop_h}:{crop_x}:{crop_y}{setpts_str}[cropped];"
                 f"[cropped][logo]overlay={overlay_x}:{overlay_y}[outv]"
             )
         else:
-            # No logo: perform crop only
-            filter_complex = f"[0:v]crop={crop_w}:{crop_h}:{crop_x}:{crop_y}[outv]"
+            # No logo: perform crop and speed shift only
+            setpts_str = f",setpts=PTS/{video_speed}" if video_speed != 1.0 else ""
+            filter_v = f"[0:v]crop={crop_w}:{crop_h}:{crop_x}:{crop_y}{setpts_str}[outv]"
+
+        # Check if the input file actually contains an audio stream
+        has_audio = check_audio_stream(input_path)
+
+        # Build dynamic audio and video filter strings
+        if has_audio and video_speed != 1.0:
+            filter_complex = filter_v + f";[0:a]atempo={video_speed}[outa]"
+            audio_args = ['-map', '[outa]', '-c:a', 'aac']
+        else:
+            filter_complex = filter_v
+            if has_audio and video_speed == 1.0:
+                audio_args = ['-map', '0:a?', '-c:a', 'copy']
+            else:
+                audio_args = []
 
         import time
         start_time_processing = time.time()
@@ -189,11 +222,12 @@ def process_video_thread(job_id, input_path, crop, logo_data, logo_options, vide
             
             cmd.extend([
                 '-filter_complex', filter_complex,
-                '-map', '[outv]',
-                '-map', '0:a?',
+                '-map', '[outv]'
+            ])
+            cmd.extend(audio_args)
+            cmd.extend([
                 '-c:v', 'libx264',
                 '-pix_fmt', 'yuv420p',
-                '-c:a', 'copy',
                 part_output_path
             ])
 
@@ -223,9 +257,11 @@ def process_video_thread(job_id, input_path, crop, logo_data, logo_options, vide
                         if key == 'out_time_us':
                             out_time_us = int(val)
                             curr_secs = out_time_us / 1000000.0
-                            if part_dur > 0:
+                            # Output duration will scale down based on the speed multiplier
+                            part_dur_output = part_dur / video_speed
+                            if part_dur_output > 0:
                                 # Progress of the current part slice
-                                part_progress = min(99.9, (curr_secs / part_dur) * 100.0)
+                                part_progress = min(99.9, (curr_secs / part_dur_output) * 100.0)
                                 # Combined overall progress percentage
                                 overall_pct = ((part_idx * 100.0) + part_progress) / split_count
                                 overall_pct = min(99.9, overall_pct)
@@ -362,6 +398,10 @@ def process_video():
     if split_count < 1:
         split_count = 1
 
+    video_speed = float(data.get('video_speed', 1.0))
+    if video_speed <= 0:
+        video_speed = 1.0
+
     with jobs_lock:
         job = jobs.get(job_id)
 
@@ -380,7 +420,7 @@ def process_video():
     # Spawn thread to crop
     t = threading.Thread(
         target=process_video_thread,
-        args=(job_id, input_path, crop, logo_data, logo_options, job['video_info'], split_count)
+        args=(job_id, input_path, crop, logo_data, logo_options, job['video_info'], split_count, video_speed)
     )
     t.start()
 

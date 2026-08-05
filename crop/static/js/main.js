@@ -5,6 +5,7 @@ let logoData = null;
 let videoWidth = 0;
 let videoHeight = 0;
 let videoDuration = 0;
+let videoSpeed = 1.0;
 let statusInterval = null;
 
 const logoOptions = {
@@ -306,9 +307,18 @@ splitCount.addEventListener("input", () => {
 function updateSplitHint() {
   if (!videoDuration) return;
   const count = parseInt(splitCount.value);
-  const partDuration = (videoDuration / count).toFixed(2);
-  splitHint.textContent = `Video will be split equally into ${count} parts (approx. ${partDuration}s per part).`;
+  const speedAdjustedDuration = videoDuration / videoSpeed;
+  const partDuration = (speedAdjustedDuration / count).toFixed(2);
+  splitHint.textContent = `Video will be split equally into ${count} parts (approx. ${partDuration}s per part at ${videoSpeed}x speed).`;
 }
+
+// Helper for video speed query choices
+document.addEventListener("change", (e) => {
+  if (e.target && e.target.name === "video-speed") {
+    videoSpeed = parseFloat(e.target.value);
+    updateSplitHint();
+  }
+});
 
 // --- PROCESSING TRIGGER ---
 
@@ -332,6 +342,7 @@ btnGenerate.addEventListener("click", () => {
     logo: logoData, // null or Base64 string
     logo_options: logoOptions,
     split_count: splitVal,
+    video_speed: videoSpeed,
   };
 
   fetch("/process", {
